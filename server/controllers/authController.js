@@ -7,6 +7,10 @@ const { success } = require("zod");
 require("dotenv").config();
 const JWT_SECRET = process.env.JWT_SECRET;
 const NODE_ENV = process.env.NODE_ENV;
+const {
+  EMAIL_VERIFY_TEMPLATE,
+  PASSWORD_RESET_TEMPLATE,
+} = require("../config/emailTemplates.js");
 
 const register = async (req, res) => {
   const payload = req.body;
@@ -44,14 +48,14 @@ const register = async (req, res) => {
       httpOnly: true,
       secure: NODE_ENV === "production",
       sameSite: NODE_ENV === "production" ? "none" : "strict",
-      maxAge: 3 * 24 * 60 * 60 * 1000,
+      maxAge: 3 * 24 * 60 * 60 * 1000, //3 days
     });
     //sending welcome email
     const mailOptions = {
       from: process.env.SENDER_EMAIL,
-      to: payload.email,
+      to: user.email,
       subject: "Welcome USER",
-      text: `Welcome user. Your account has been created with email id: ${payload.email}`,
+      text: `Welcome ${user.firstName} ${user.lastName}. Your account has been created with email id: ${user.email}`,
     };
 
     await transporter.sendMail(mailOptions);
@@ -142,7 +146,11 @@ const sendVerifyOtp = async (req, res) => {
       from: process.env.SENDER_EMAIL,
       to: user.email,
       subject: "Account verification OTP",
-      text: `Your OTP is ${otp}. Verify your account using this OTP.`,
+      // text: `Your OTP is ${otp}. Verify your account using this OTP.`,
+      html: EMAIL_VERIFY_TEMPLATE.replace("{{otp}}", otp).replace(
+        "{{email}}",
+        user.email
+      ),
     };
     await transporter.sendMail(mailOption);
 
@@ -217,7 +225,11 @@ const sendResetOtp = async (req, res) => {
       from: process.env.SENDER_EMAIL,
       to: user.email,
       subject: "Password Reset OTP",
-      text: `Your OTP for resetting your password is ${otp}. Use this OTP to proceed with resetting your password.`,
+      // text: `Your OTP for resetting your password is ${otp}. Use this OTP to proceed with resetting your password.`,
+      html: PASSWORD_RESET_TEMPLATE.replace("{{otp}}", otp).replace(
+        "{{email}}",
+        user.email
+      ),
     };
     await transporter.sendMail(mailOption);
 
